@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多功能計算機</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f5f5f5;
+    color: #222;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+  }
+  h1 { font-size: 1.2rem; font-weight: 500; letter-spacing: 0.08em; color: #555; margin-bottom: 28px; }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: #e8e8e8;
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 24px;
+  }
+  .tab {
+    padding: 8px 18px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #666;
+    transition: all 0.15s;
+  }
+  .tab.active {
+    background: #fff;
+    color: #222;
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .panel { display: none; width: 100%; max-width: 360px; }
+  .panel.active { display: block; }
+
+  /* ── 一般計算機 ── */
+  .calc-display {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    text-align: right;
+  }
+  .calc-expr {
+    font-size: 0.8rem;
+    color: #aaa;
+    min-height: 18px;
+    margin-bottom: 4px;
+    word-break: break-all;
+  }
+  .calc-val {
+    font-size: 2rem;
+    font-weight: 300;
+    color: #222;
+    word-break: break-all;
+  }
+  .calc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .btn {
+    padding: 16px 0;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: opacity 0.1s, transform 0.08s;
+    background: #fff;
+    color: #222;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+  .btn:active { opacity: 0.7; transform: scale(0.96); }
+  .btn.op  { background: #f0f0f0; }
+  .btn.eq  { background: #222; color: #fff; }
+  .btn.clr { background: #f0f0f0; color: #e55; }
+  .btn.span2 { grid-column: span 2; }
+
+  /* ── 餘數 / 模數 ── */
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .field { margin-bottom: 14px; }
+  label { display: block; font-size: 0.78rem; color: #888; margin-bottom: 5px; }
+  input[type=text], input[type=number] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus { border-color: #aaa; }
+  .run-btn {
+    width: 100%;
+    padding: 11px;
+    background: #222;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 4px;
+  }
+  .run-btn:hover { opacity: 0.85; }
+  .result-box {
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: #f8f8f8;
+    border-radius: 7px;
+    font-size: 0.9rem;
+    color: #444;
+    line-height: 1.7;
+    min-height: 42px;
+    word-break: break-all;
+  }
+  .result-box strong { color: #222; }
+  .err { color: #c00; }
+  .section-title {
+    font-size: 0.75rem;
+    color: #aaa;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  hr.sep { border: none; border-top: 1px solid #eee; margin: 20px 0; }
+</style>
+</head>
+<body>
+
+<h1>多功能計算機</h1>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('calc')">計算機</button>
+  <button class="tab" onclick="switchTab('rem')">餘數</button>
+  <button class="tab" onclick="switchTab('mod')">模數運算</button>
+  <button class="tab" onclick="switchTab('pf')">質因數</button>
+</div>
+
+<!-- ══ 一般計算機 ══ -->
+<div class="panel active" id="panel-calc">
+  <div class="calc-display">
+    <div class="calc-expr" id="expr"></div>
+    <div class="calc-val" id="disp">0</div>
+  </div>
+  <div class="calc-grid">
+    <button class="btn clr" onclick="calcAC()">AC</button>
+    <button class="btn op"  onclick="calcSign()">+/−</button>
+    <button class="btn op"  onclick="calcPct()">%</button>
+    <button class="btn op"  onclick="calcOp('/')">÷</button>
+
+    <button class="btn" onclick="calcNum('7')">7</button>
+    <button class="btn" onclick="calcNum('8')">8</button>
+    <button class="btn" onclick="calcNum('9')">9</button>
+    <button class="btn op"  onclick="calcOp('*')">×</button>
+
+    <button class="btn" onclick="calcNum('4')">4</button>
+    <button class="btn" onclick="calcNum('5')">5</button>
+    <button class="btn" onclick="calcNum('6')">6</button>
+    <button class="btn op"  onclick="calcOp('-')">−</button>
+
+    <button class="btn" onclick="calcNum('1')">1</button>
+    <button class="btn" onclick="calcNum('2')">2</button>
+    <button class="btn" onclick="calcNum('3')">3</button>
+    <button class="btn op"  onclick="calcOp('+')">+</button>
+
+    <button class="btn span2" onclick="calcNum('0')">0</button>
+    <button class="btn" onclick="calcDot()">.</button>
+    <button class="btn eq"  onclick="calcEq()">=</button>
+  </div>
+</div>
+
+<!-- ══ 餘數 ══ -->
+<div class="panel" id="panel-rem">
+  <div class="card">
+    <div class="section-title">整數除法餘數</div>
+    <div class="field">
+      <label>被除數 (a)</label>
+      <input type="number" id="rem-a" placeholder="例：17">
+    </div>
+    <div class="field">
+      <label>除數 (b)</label>
+      <input type="number" id="rem-b" placeholder="例：5">
+    </div>
+    <button class="run-btn" onclick="calcRem()">計算</button>
+    <div class="result-box" id="rem-result">—</div>
+  </div>
+</div>
+
+<!-- ══ 模數運算 ══ -->
+<div class="panel" id="panel-mod">
+  <div class="card">
+    <div class="section-title">模數運算　a mod m</div>
+    <div class="field"><label>a</label><input type="number" id="mod-a" placeholder="例：23"></div>
+    <div class="field"><label>m（模數）</label><input type="number" id="mod-m" placeholder="例：7"></div>
+    <button class="run-btn" onclick="calcMod()">計算 a mod m</button>
+    <div class="result-box" id="mod-result">—</div>
+
+    <hr class="sep">
+
+    <div class="section-title">模反元素　a⁻¹ mod m</div>
+    <div class="field"><label>a</label><input type="number" id="inv-a" placeholder="例：3"></div>
+    <div class="field"><label>m（模數，需為正整數）</label><input type="number" id="inv-m" placeholder="例：7"></div>
+    <button class="run-btn" onclick="calcInv()">計算反模數</button>
+    <div class="result-box" id="inv-result">—</div>
+
+  </div>
+</div>
+
+<!-- ══ 質因數分解 ══ -->
+<div class="panel" id="panel-pf">
+  <div class="card">
+    <div class="section-title">質因數分解</div>
+    <div class="field">
+      <label>正整數 n（最大支援到 10¹²）</label>
+      <input type="number" id="pf-n" placeholder="例：360" min="2">
+    </div>
+    <button class="run-btn" onclick="calcPF()">分解</button>
+    <div class="result-box" id="pf-result">—</div>
+  </div>
+</div>
+
+<script>
+// ── 分頁切換 ──
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const ids = ['calc','rem','mod','pf'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+}
+
+// ── 一般計算機 ──
+let cVal = '0', cOp = null, cPrev = null, cNewNum = true;
+
+function updateDisp(v) {
+  const s = String(v);
+  document.getElementById('disp').textContent = s.length > 14 ? parseFloat(v).toPrecision(10) : s;
+}
+function calcAC()   { cVal='0'; cOp=null; cPrev=null; cNewNum=true; updateDisp(0); document.getElementById('expr').textContent=''; }
+function calcNum(n) {
+  if (cNewNum) { cVal = n; cNewNum = false; }
+  else cVal = cVal === '0' ? n : cVal + n;
+  updateDisp(cVal);
+}
+function calcDot() {
+  if (cNewNum) { cVal='0.'; cNewNum=false; }
+  else if (!cVal.includes('.')) cVal += '.';
+  updateDisp(cVal);
+}
+function calcSign() { cVal = String(-parseFloat(cVal) || 0); updateDisp(cVal); }
+function calcPct()  { cVal = String(parseFloat(cVal) / 100); updateDisp(cVal); }
+function calcOp(op) {
+  if (cOp && !cNewNum) calcEq(true);
+  cPrev = parseFloat(cVal);
+  cOp = op;
+  cNewNum = true;
+  const sym = {'+':'+','-':'−','*':'×','/':'÷'}[op];
+  document.getElementById('expr').textContent = cPrev + ' ' + sym;
+}
+function calcEq(chain) {
+  if (cOp === null) return;
+  const a = cPrev, b = parseFloat(cVal), op = cOp;
+  let r;
+  if (op==='+') r=a+b; else if(op==='-') r=a-b;
+  else if(op==='*') r=a*b; else r = b===0 ? 'Error' : a/b;
+  if (!chain) { document.getElementById('expr').textContent=''; cOp=null; }
+  cVal = String(r); cNewNum = true;
+  updateDisp(r);
+}
+
+// ── 餘數 ──
+function calcRem() {
+  const a = parseInt(document.getElementById('rem-a').value);
+  const b = parseInt(document.getElementById('rem-b').value);
+  const el = document.getElementById('rem-result');
+  if (isNaN(a)||isNaN(b)) { el.innerHTML='<span class="err">請輸入整數</span>'; return; }
+  if (b===0) { el.innerHTML='<span class="err">除數不可為 0</span>'; return; }
+  const q = Math.trunc(a/b), r = a % b;
+  el.innerHTML = `<strong>${a}</strong> ÷ <strong>${b}</strong> = ${q} … <strong>${r}</strong><br>
+    即 ${a} = ${b} × ${q} + ${r}`;
+}
+
+// ── 模數運算 ──
+function calcMod() {
+  const a = BigInt(document.getElementById('mod-a').value||'0');
+  const m = BigInt(document.getElementById('mod-m').value||'0');
+  const el = document.getElementById('mod-result');
+  if (m === 0n) { el.innerHTML='<span class="err">模數不可為 0</span>'; return; }
+  const r = ((a % m) + m) % m;
+  el.innerHTML = `<strong>${a}</strong> mod <strong>${m}</strong> = <strong>${r}</strong>`;
+}
+
+function gcdExt(a, b) {
+  if (b === 0n) return [a, 1n, 0n];
+  const [g, x, y] = gcdExt(b, a % b);
+  return [g, y, x - (a / b) * y];
+}
+function calcInv() {
+  const a = BigInt(document.getElementById('inv-a').value||'0');
+  const m = BigInt(document.getElementById('inv-m').value||'0');
+  const el = document.getElementById('inv-result');
+  if (m <= 1n) { el.innerHTML='<span class="err">m 須大於 1</span>'; return; }
+  const [g, x] = gcdExt(((a % m) + m) % m, m);
+  if (g !== 1n) { el.innerHTML=`<span class="err">gcd(${a}, ${m}) = ${g} ≠ 1，反模數不存在</span>`; return; }
+  const inv = ((x % m) + m) % m;
+  el.innerHTML = `<strong>${a}</strong>⁻¹ mod <strong>${m}</strong> = <strong>${inv}</strong><br>
+    驗證：${a} × ${inv} mod ${m} = ${(a * inv % m + m) % m}`;
+}
+
+// ── 質因數分解 ──
+function calcPF() {
+  const el = document.getElementById('pf-result');
+  let n = parseInt(document.getElementById('pf-n').value);
+  if (!Number.isInteger(n) || n < 2) { el.innerHTML='<span class="err">請輸入 ≥ 2 的正整數</span>'; return; }
+  if (n > 1e12) { el.innerHTML='<span class="err">數值過大（上限 10¹²）</span>'; return; }
+
+  const orig = n;
+  const factors = {};
+  for (let p = 2; p * p <= n; p++) {
+    while (n % p === 0) { factors[p] = (factors[p] || 0) + 1; n /= p; }
+  }
+  if (n > 1) factors[n] = (factors[n] || 0) + 1;
+
+  const parts = Object.entries(factors);
+  const expr = parts.map(([p, e]) => e > 1 ? `${p}<sup>${e}</sup>` : p).join(' × ');
+  const text = parts.map(([p, e]) => e > 1 ? `${p}^${e}` : p).join(' × ');
+  const isPrime = parts.length === 1 && parts[0][1] === 1;
+
+  el.innerHTML = isPrime
+    ? `<strong>${orig}</strong> 是質數`
+    : `<strong>${orig}</strong> = ${expr}<br><span style="color:#aaa;font-size:0.8rem">${orig} = ${text}</span>`;
+}
+</script>
+</body>
+</html>
