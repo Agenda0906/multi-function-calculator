@@ -151,7 +151,7 @@
   <button class="tab active" onclick="switchTab('calc')">計算機</button>
   <button class="tab" onclick="switchTab('rem')">餘數</button>
   <button class="tab" onclick="switchTab('mod')">模數運算</button>
-  <button class="tab" onclick="switchTab('pf')">質因數</button>
+  <button class="tab" onclick="switchTab('phi')">歐拉函數</button>
 </div>
 
 <!-- ══ 一般計算機 ══ -->
@@ -224,16 +224,16 @@
   </div>
 </div>
 
-<!-- ══ 質因數分解 ══ -->
-<div class="panel" id="panel-pf">
+<!-- ══ 歐拉函數 ══ -->
+<div class="panel" id="panel-phi">
   <div class="card">
-    <div class="section-title">質因數分解</div>
+    <div class="section-title">歐拉函數　φ(n)</div>
     <div class="field">
       <label>正整數 n（最大支援到 10¹²）</label>
-      <input type="number" id="pf-n" placeholder="例：360" min="2">
+      <input type="number" id="phi-n" placeholder="例：12" min="1">
     </div>
-    <button class="run-btn" onclick="calcPF()">分解</button>
-    <div class="result-box" id="pf-result">—</div>
+    <button class="run-btn" onclick="calcPhi()">計算 φ(n)</button>
+    <div class="result-box" id="phi-result">—</div>
   </div>
 </div>
 
@@ -241,7 +241,7 @@
 // ── 分頁切換 ──
 function switchTab(id) {
   document.querySelectorAll('.tab').forEach((t, i) => {
-    const ids = ['calc','rem','mod','pf'];
+    const ids = ['calc','rem','mod','phi'];
     t.classList.toggle('active', ids[i] === id);
   });
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -326,28 +326,54 @@ function calcInv() {
     驗證：${a} × ${inv} mod ${m} = ${(a * inv % m + m) % m}`;
 }
 
-// ── 質因數分解 ──
-function calcPF() {
-  const el = document.getElementById('pf-result');
-  let n = parseInt(document.getElementById('pf-n').value);
-  if (!Number.isInteger(n) || n < 2) { el.innerHTML='<span class="err">請輸入 ≥ 2 的正整數</span>'; return; }
-  if (n > 1e12) { el.innerHTML='<span class="err">數值過大（上限 10¹²）</span>'; return; }
+// ── 歐拉函數 φ(n) ──
+function calcPhi() {
+  const el = document.getElementById('phi-result');
+  let n = parseInt(document.getElementById('phi-n').value);
+  if (!Number.isInteger(n) || n < 1) { el.innerHTML = '<span class="err">請輸入 ≥ 1 的正整數</span>'; return; }
+  if (n > 1e12) { el.innerHTML = '<span class="err">數值過大（上限 10¹²）</span>'; return; }
+
+  if (n === 1) { el.innerHTML = 'φ(<strong>1</strong>) = <strong>1</strong>'; return; }
 
   const orig = n;
   const factors = {};
-  for (let p = 2; p * p <= n; p++) {
-    while (n % p === 0) { factors[p] = (factors[p] || 0) + 1; n /= p; }
+  let temp = n;
+  for (let p = 2; p * p <= temp; p++) {
+    while (temp % p === 0) { factors[p] = (factors[p] || 0) + 1; temp /= p; }
   }
-  if (n > 1) factors[n] = (factors[n] || 0) + 1;
+  if (temp > 1) factors[temp] = (factors[temp] || 0) + 1;
 
-  const parts = Object.entries(factors);
-  const expr = parts.map(([p, e]) => e > 1 ? `${p}<sup>${e}</sup>` : p).join(' × ');
-  const text = parts.map(([p, e]) => e > 1 ? `${p}^${e}` : p).join(' × ');
+  const parts = Object.entries(factors).map(([p, e]) => [Number(p), Number(e)]);
   const isPrime = parts.length === 1 && parts[0][1] === 1;
 
-  el.innerHTML = isPrime
-    ? `<strong>${orig}</strong> 是質數`
-    : `<strong>${orig}</strong> = ${expr}<br><span style="color:#aaa;font-size:0.8rem">${orig} = ${text}</span>`;
+  // 質因數分解式
+  const factorExpr = parts.map(([p, e]) => e > 1 ? `${p}<sup>${e}</sup>` : `${p}`).join(' × ');
+
+  if (isPrime) {
+    el.innerHTML =
+      `<strong>${orig}</strong> 是質數<br><br>` +
+      `φ(<strong>${orig}</strong>) = ${orig} − 1 = <strong>${orig - 1}</strong>`;
+    return;
+  }
+
+  // 展開式各項：p^(e-1) × (p-1)
+  let phi = 1;
+  const termExprs = parts.map(([p, e]) => {
+    const val = Math.pow(p, e - 1) * (p - 1);
+    phi *= val;
+    if (e === 1) return { html: `(${p}−1)`, num: val };
+    return { html: `${p}<sup>${e - 1}</sup>×(${p}−1)`, num: val };
+  });
+
+  const phiFormula = termExprs.map(t => t.html).join(' × ');
+  const phiNums    = termExprs.map(t => t.num).join(' × ');
+
+  el.innerHTML =
+    `${orig} = ${factorExpr}<br><br>` +
+    `φ(<strong>${orig}</strong>)` +
+    ` = ${phiFormula}<br>` +
+    `<span style="padding-left:5.2em">= ${phiNums}</span><br>` +
+    `<span style="padding-left:5.2em">= <strong>${phi}</strong></span>`;
 }
 </script>
 </body>
